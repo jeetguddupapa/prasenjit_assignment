@@ -1,0 +1,37 @@
+from pyspark.sql import SparkSession
+
+# Load data from SQLite database into Spark DataFrames API
+sales_df = spark.read.format("jdbc") \
+    .option("url", "jdbc:sqlite:your_database.db") \
+    .option("dbtable", "Sales") \
+    .load()
+
+customers_df = spark.read.format("jdbc") \
+    .option("url", "jdbc:sqlite:your_database.db") \
+    .option("dbtable", "Customers") \
+    .load()
+
+items_df = spark.read.format("jdbc") \
+    .option("url", "jdbc:sqlite:your_database.db") \
+    .option("dbtable", "Items") \
+    .load()
+
+# Register DataFrames as temporary views
+sales_df.createOrReplaceTempView("sales")
+customers_df.createOrReplaceTempView("customers")
+items_df.createOrReplaceTempView("items")
+
+# Perform SQL query to get required data
+sql_query = spark.sql(
+SELECT c.CustomerID, c.Age, i.Item, SUM(s.Quantity) AS Quantity
+FROM sales s
+JOIN customers c ON s.CustomerID = c.CustomerID
+JOIN items i ON s.ItemID = i.ItemID
+WHERE c.Age BETWEEN 18 AND 35 AND s.Quantity IS NOT NULL
+GROUP BY c.CustomerID, c.Age, i.Item
+ORDER BY c.CustomerID, i.Item
+).show()
+
+
+# write the results to parquet  file
+sql_query.write.format(‘parquet’).option(‘path’)
